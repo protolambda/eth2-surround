@@ -103,7 +103,7 @@ const MAX_MASK = (GeoIndex(1) << BIT_DEPTH) - 1
 // recursively collect attestations
 func (gl *GeoLookup) match(index GeoIndex, current GeoIndex, depth uint8, flip bool) (surrounds []GeoIndex, surroundedBy []GeoIndex) {
 	a := current &^ (MAX_MASK >> depth)
-	b := a ^ 1
+	b := a ^ (1 << (BIT_DEPTH - depth))
 	next := depth + 1
 	// add the results of a deeper match to the total results
 	// TODO: use a channel instead to stream results back
@@ -117,29 +117,29 @@ func (gl *GeoLookup) match(index GeoIndex, current GeoIndex, depth uint8, flip b
 		}
 	}
 	// TODO fix quadrants recursive behavior, this is the idea, but probably wrong now
-	if (flip || (a < index)) && gl.Hit(a, depth) {
-		if next == BIT_DEPTH {
+	if (flip != (a < index)) && gl.Hit(a, depth) {
+		if next == BIT_DEPTH && a != index {
 			surrounds = append(surrounds, a)
 		} else {
 			recurse(a)
 		}
 	}
-	if (flip || (a > index)) && gl.Hit(a, depth) {
-		if next == BIT_DEPTH {
+	if (flip != (a > index)) && gl.Hit(a, depth) {
+		if next == BIT_DEPTH && a != index {
 			surroundedBy = append(surroundedBy, b)
 		} else {
 			recurse(a)
 		}
 	}
-	if (!flip || (b < index)) && gl.Hit(b, depth) {
-		if next == BIT_DEPTH {
+	if (flip != (b < index)) && gl.Hit(b, depth) {
+		if next == BIT_DEPTH && b != index {
 			surrounds = append(surrounds, b)
 		} else {
 			recurse(b)
 		}
 	}
-	if (!flip || (b > index)) && gl.Hit(b, depth) {
-		if next == BIT_DEPTH {
+	if (flip != (b > index)) && gl.Hit(b, depth) {
+		if next == BIT_DEPTH && b != index  {
 			surroundedBy = append(surroundedBy, b)
 		} else {
 			recurse(b)
