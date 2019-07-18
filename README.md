@@ -41,7 +41,7 @@ The `t_p = t_x` line are double votes (except where `s_p = s_x`).
 
 The `s_p = s_x` line is free: any target goes if the source is right.
 
-The `s_p = s_x && t_p = t_x` point is the same attestation.
+The `s_p = s_x && t_p = t_x` point is the same attestation (if you ignore the crosslink / metadata).
 
 The `s > t` case is simply invalid, attestations are required to have a newer target than source.
 
