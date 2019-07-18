@@ -43,7 +43,7 @@ The `s_p = s_x` line is free: any target goes if the source is right.
 
 The `s_p = s_x && t_p = t_x` point is the same attestation.
 
-The `s > t` case is simply invalid, attestations are required to have a newer source than target.
+The `s > t` case is simply invalid, attestations are required to have a newer target than source.
 
 Note that the `s = t` line (or `s + 1 = t` really) is the ideal: 
  attestations build right on the last epoch, and everything is justified and finalized quickly.
