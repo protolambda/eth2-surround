@@ -71,6 +71,9 @@ So it can be handled as a special case.
 
 Now, to catch the II (surrounded by existing attestation) and IV (surrounds existing attestation) cases, we can apply some spatial search  algorithm, like a quadtree:
 
+**Note: this is an _aggressive_ approach to the problem. If the gradient from target to source is such that there are
+ next to none attestations with a source-target distance > ~4 (it should be), then the quadtree is too much.**  
+
 ![](img/surround-quadtree.png)
 
 This quadtree goes in full depth near the edges, but if there are no attestations in a quad, one can stop recursively going deeper.
@@ -84,7 +87,8 @@ This is easily avoided by defining chunks, each `d * d` in size:
 And then you binary search the chunks based on target epoch, and select the two chunks to search in
  (for any point `p` in the chunk, the II and IV areas can only overlap one more neighbour chunk)
 
-Then search the quadtree of the chunk, and the surrounded and surrounded-by attestations (may both be none) for a new `p` can be retrieved.
+Then search the quadtree of the chunk (or just a list would work, if the quadtree contents are nearly flat),
+ and the surrounded and surrounded-by attestations (may both be none) for a new `p` can be retrieved.
 
 The binary search could be 32 bits deep, and then another 32 levels search in the quadtree. And so for both II and IV.
 This would result in approximately `(32 + 32*2) * 2` bound checks when no matching attestation for an attester-slashing can be found. (recursion stops for empty/unrelated quads)
