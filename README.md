@@ -112,7 +112,9 @@ Note that old chunks are used rarely, and can be persisted to disk. And chaos ma
 ## Layered approach
 
 The above can work on a per-validator basis.
-But one may change this to a layered approach for storage/memory efficiency:
+But one may change this to a layered approach for storage/memory efficiency.
+**This is arguably more important than whatever data structure is used for a chunk, as the average-case distribution within a chunk should be very close to the `s=t` line.
+Optimizations to avoid per-validator work help more in such case.**
 
 1. Full approach, but per attestation. May return many false positives. But can rule out many guaranteed safe attestations (a.k.a. no hit in quadtree).
   - **Do not have to recurse all the way down** Knowing that there is at least 1 matching attestation is good enough. Fully encapsulated sub-quads are preferable to check first. If not empty, work is done.
