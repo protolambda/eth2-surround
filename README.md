@@ -123,3 +123,22 @@ Optimizations to avoid per-validator work help more in such case.**
 3. Repeat the index-precision thing a layer or two maybe.
 4. Now that we know with high certainty that there is indeed a slashable attestation, with a rough range from the last time time we hit the quadtree. 
    We can stream the hit attestation(s) (and filter the few of them if we stopped at a non-exact precision, e.g. `index >> 3` may turn up attestations for 8 validators).
+
+## Manhatten alternative
+
+We can exploit the gradient between `s = t` and `s + d = t`.
+
+By rotating the plot, a 1D index can be aligned to `s=t`, and make range queries on this index 
+for a certain point `p` *effectively* retrieve more attestations in area IV than in III and I.
+This is because of the gradient: most attestations are close to the `s = t` line.
+
+A manhatten distance (`distance = m(a, b) = a + b`) can be used for the indexing of such rotated plotted.
+
+![](img/surround-manhatten.png)
+
+The index can be split into multiple indices, for ranges of distances to the `s=t` line (or source - target distance really), to reduce false positives even more.
+And then fully surrounded range queries can be executed also, to get attestation matches for cheap (no false positives, simply stop on first match).
+Or query on full range first, to rule out any attestations (no false negatives).
+
+This strategy can be changed depending on the distance to the `s=t` line, as density influences the amount of false-positives.
+
