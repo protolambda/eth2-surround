@@ -240,9 +240,12 @@ func (bs *MHDetectionBlockStack) FuzzyCheckAndAdd(source Source, target Target, 
 		// [m(s,s+d_min), m(s,s+d_max)] and [m(t-d_min,t),m(t-d_max,t)] can have both true/false positives
 		// [m(s,s+d_max), m(t-d_max,t)] only has true positives
 
+		if d >= b.MinDistance && d < b.MaxDistance {
+			b.Add(source, target)
+		}
 		// if the block ends past the new data point, then the data point can be surrounded by something in it
 		if d < b.MaxDistance {
-			start, end := ManhattenSurrounderRange(source, target, b.MinDistance)
+			start, end := ManhattenSurrounderRange(source, target, b.MaxDistance)
 			if b.CheckRange(start, end) {
 				out.surroundedBy = focus.surroundedBy
 				break
