@@ -172,7 +172,7 @@ That would be `300000 * (54000 + 3150) bits = 2.14 GB` for `M=1`, or `21.4 GB` f
 A newer idea is that you may only care about *any* attestation to slash with, not a specific one. In this case, you would only have to store the best candidate for 2 cases:
  "surrounding" (min span) and "surrounded by" (max span).
 
-Simply read the value at the position equal to the target of the incoming attestation, on the min-span and max-span index to figure out if it is surrounding or gets surrounded by existing attestations.
+Simply read the value at the position equal to the source of the incoming attestation, on the min-span and max-span index to figure out if it is surrounding or gets surrounded by existing attestations.
 
 ![](img/surround-min-surrounding.png)
 
@@ -182,20 +182,17 @@ Simply read the value at the position equal to the target of the incoming attest
 This would be a `O(1)`, with 54000 epochs of history, it is sufficient to read just 4 bytes to figure out if it can be slashed!
 Updating can be more expensive than other solutions like the manhatten index however, but not too much.
 
-Note that instead of distances to source, the source itself could also be encoded.
+Note that instead of distances to target, the target itself could also be encoded.
 
-For each value (can be distance or source), you would need 2 bytes (`log2(54000) = ~ 15.7  -> 16 bits`).
+For each value (can be distance or target), you would need 2 bytes (`log2(54000) = ~ 15.7  -> 16 bits`).
 
 There is a trade-off here:
 - for lots of small spans, encoding the distance is better: lots of small values like 1, 2, 3. It compresses well.
-- for bigger spans, encoding the source is better: lots of references to the same source, so values are a lot alike. It compresses well.
+- for bigger spans, encoding the absolute target is better: lots of references to the same target, so values are a lot alike. It compresses well.
 
-Since the max-span and min-span obviously tend to different span sizes here, the preferred encoding can be chosen for both.
+Since the max-span and min-span obviously tend to different span sizes here, the preferred encoding can be chosen for both separately.
 
-And then there are default values, which are especially bothersome in the min-span case: you do not want to update ~54000 values when you found a new attestation in an early epoch.
-Instead, you could track the index of the highest seen source for the values, and use that to check if a real value should be read or not (if its index is higher than the highest seen, it will be the distance to the highest seen).
-
-And a final optimization would be to have a few "special values" for low spans in the case you encode the source location; e.g. reserve `0xfff0 ... 0xffff` for distances `0...15` (which can be converted to regular source locations) by substracting these from the index of the value that is read (a.k.a. the target of the incoming attestation).
+Another optimization would be to have a few "special values" for low spans in the case you encode the absolute target location; e.g. reserve `0xfff0 ... 0xffff` for distances `0...15` (which can be converted to regular target locations) by substracting these from the index of the value that is read (a.k.a. the source of the incoming attestation).
 This ensures that for the smaller spans, values are still the same (instead of incrementing) and compress well.
 
 This solution would take `2 indexes * 54000 epochs * 300000 validators * 2 byte ints = 64.8 GB`. However, the lookups have good locality for caching (latest epochs are close together)
@@ -205,16 +202,9 @@ So with compression applied, this solution may get in the `< 1 GB` range for 300
 
 ### How to fetch the slashable attestation 
 
-There are two approaches:
-1. Key stored attestations by `(source epoch, committee index)`, put duplicates in a bucket, don't overwrite.
-    - derive the `source` of the found slashing match from `lookup index - distance` (or source is just encoded in place already)
-    - committee index is already known for the incoming attestation
-    - fetch bucket for `(source epoch, committee index)`
-        - we could key by `(source epoch, validator index)` too, but generally we don't expect a committee to vote for many different attestation-datas. So the false positives may be worth the reduced key space.
-    - manually go through whatever attestations can be found and find the slashing (which we are sure is there, so the work should be worth it)
-2. No false positives, but more data to deal with:
-    - every time you update a value on the `min-span` or `max-span` index, you are essentially committing to a better candidate attestation to slash future attestations with.
-        - if you update, also update a reference to the attestation that is backing the span
-    - when a surrounding/ed-by is detected, you have the reference to the attestation that forms the slashing right there!
-    - depending on the key size `S` used for attestations, it requires `54000 * 300000 * S` more bytes. However, this may also compress well if there are lots of duplicate entries.
+You store attestations by `(target epoch, validator index)`, *note that you likely already have this to find double votes*
  
+1. derive the `target` of the found slashing match from `target = (lookup index (== incoming source) - distance)` (or target is just encoded in place already).
+2. validator index is already known for the incoming attestation you are matching
+3. fetch attestation for `(target epoch, validator index)`
+    - there should only be one entry for this, as the validator would get slashed for attesting to the same target with different data.
