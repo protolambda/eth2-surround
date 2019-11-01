@@ -1,10 +1,12 @@
-# Geo-spatial Surround Vote Matching
+# Surround Vote Matching
 
-| deep dive in surround vote matching as a geo-spatial problem, by @protolambda.
+| deep dive in surround vote matching problem, by @protolambda.
 
 Attestations can "surround" other attestations in ETH 2.0. And this is a slashable offence.
 However, since there can be long delays, and there are many attestations,
  it is hard to match attestations with the complete set of known attestations, to find these surround votes.
+
+And with considerable numbers (8 months of data worth 54.000 epochs, with approx. 300.000 validators), it is important to be space-efficient with the surround vote matching.
 
 ## Definition
 
@@ -57,7 +59,7 @@ But in chaotic times, an attestation may fork off, and stray away.
 And, as you move away from `s = t` with a new attestation, the area IV grows: 
  you can surround your earlier vote if you backtrack to an earlier source while voting for a new target.
 
-## Matching
+## Geo-spatial matching
 
 To make use of the `s > t` space in the matching, the axis can be transformed to move it out of bounds:
  
@@ -68,6 +70,8 @@ To make use of the `s > t` space in the matching, the axis can be transformed to
 This would be something like 2 weeks, in a super exceptional case.
 It is also acceptable to set it lower, as the data beyond `d` is rare and has a higher chance of being a surround vote.
 So it can be handled as a special case.
+
+### Throw a quadtree at it
 
 Now, to catch the II (surrounded by existing attestation) and IV (surrounds existing attestation) cases, we can apply some spatial search  algorithm, like a quadtree:
 
@@ -103,7 +107,7 @@ Note that old chunks are used rarely, and can be persisted to disk. And chaos ma
 
 The chunking is probably more useful with other more efficient matching algorithms, see alternatives below.
 
-## Limits
+### Limits
 
 8 months weak subjectivity period with 300K validators: 54000 epochs
 
@@ -113,9 +117,11 @@ The chunking is probably more useful with other more efficient matching algorith
 
 `54000/d = 54000/3150 = 17.14`, so 18 chunks may be sufficient to cover the full period. And then keep the last few in memory for efficiency.
 
-## Layered approach
+### Layered approach
 
-The above can work on a per-validator basis.
+How to deal with false-positives? Idea: Use them, design to a layered filtering system.
+
+The above matching can work on a per-validator basis.
 But one may change this to a layered approach for storage/memory efficiency.
 **This is arguably more important than whatever data structure is used for a chunk, as the average-case distribution within a chunk should be very close to the `s=t` line.
 Optimizations to avoid per-validator work help more in such case.**
@@ -128,7 +134,9 @@ Optimizations to avoid per-validator work help more in such case.**
 4. Now that we know with high certainty that there is indeed a slashable attestation, with a rough range from the last time time we hit the quadtree. 
    We can stream the hit attestation(s) (and filter the few of them if we stopped at a non-exact precision, e.g. `index >> 3` may turn up attestations for 8 validators).
 
-## Manhatten index
+### Manhatten index
+
+Idea here: Less false positives with design a for specialized index.
 
 We can exploit the gradient between `s = t` and `s + d = t`.
 
