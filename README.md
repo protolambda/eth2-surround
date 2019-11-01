@@ -203,3 +203,18 @@ This solution would take `2 indexes * 54000 epochs * 300000 validators * 2 byte 
 
 So with compression applied, this solution may get in the `< 1 GB` range for 300.000 validators and 54.000 epochs :tada:
 
+### How to fetch the slashable attestation 
+
+There are two approaches:
+1. Key stored attestations by `(source epoch, committee index)`, put duplicates in a bucket, don't overwrite.
+    - derive the `source` of the found slashing match from `lookup index - distance` (or source is just encoded in place already)
+    - committee index is already known for the incoming attestation
+    - fetch bucket for `(source epoch, committee index)`
+        - we could key by `(source epoch, validator index)` too, but generally we don't expect a committee to vote for many different attestation-datas. So the false positives may be worth the reduced key space.
+    - manually go through whatever attestations can be found and find the slashing (which we are sure is there, so the work should be worth it)
+2. No false positives, but more data to deal with:
+    - every time you update a value on the `min-span` or `max-span` index, you are essentially committing to a better candidate attestation to slash future attestations with.
+        - if you update, also update a reference to the attestation that is backing the span
+    - when a surrounding/ed-by is detected, you have the reference to the attestation that forms the slashing right there!
+    - depending on the key size `S` used for attestations, it requires `54000 * 300000 * S` more bytes. However, this may also compress well if there are lots of duplicate entries.
+ 
